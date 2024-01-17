@@ -1,0 +1,271 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  sam-todo #magic___^_^___line
+Transform:
+- AWS::Serverless-2016-10-31
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    Description: The stage of the application, e.g. dev, prod, etc.
+  CognitoDomain:
+    Type: String
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: ^[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?$
+    Description: Enter a string. Must be alpha numeric 3-63 in length.
+
+Resources:
+  TodoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${AWS::StackName}-todo
+      AttributeDefinitions:
+      - AttributeName: todoId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: todoId
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+
+  getAllTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/get-all-items.getAllItemsHandler
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A HTTP get method to get all items from a DynamoDB table.
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref TodoTable
+      Environment:
+        Variables:
+          TODO_TABLE_NAME: !Ref TodoTable
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /todo
+            Method: GET
+            RestApiId: !Ref RestAPI
+
+  createTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/create-todo.createTodo
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A POST method to create a todo item in a DynamoDB table.
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref TodoTable
+      Environment:
+        Variables:
+          TODO_TABLE_NAME: !Ref TodoTable
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /todo
+            Method: POST
+            RestApiId: !Ref RestAPI
+
+  updateTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/update-todo.updateTodo
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A PUT method to update a todo item in a DynamoDB table.
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref TodoTable
+      Environment:
+        Variables:
+          TODO_TABLE_NAME: !Ref TodoTable
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /todo/{id}
+            Method: PUT
+            RestApiId: !Ref RestAPI
+
+  deleteTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/delete-todo.deleteTodo
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A DELETE method to update a todo item in a DynamoDB table.
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref TodoTable
+      Environment:
+        Variables:
+          TODO_TABLE_NAME: !Ref TodoTable
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /todo/{id}
+            Method: DELETE
+            RestApiId: !Ref RestAPI
+
+
+
+  # Authorizer Function
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers
+      Handler: token-authorizer.tokenAuthorizer
+      Runtime: nodejs20.x
+
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UsernameConfiguration:
+        CaseSensitive: false
+      AutoVerifiedAttributes:
+      - email
+      UserPoolName: !Sub ${CognitoDomain}-user-pool
+      Schema:
+      - Name: email
+        AttributeDataType: String
+        Mutable: false
+        Required: true
+      - Name: name
+        AttributeDataType: String
+        Mutable: true
+        Required: true
+
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+      - http://localhost:3000
+      AllowedOAuthFlows:
+      - implicit
+      AllowedOAuthScopes:
+      - phone
+      - email
+      - openid
+      - profile
+      SupportedIdentityProviders:
+      - COGNITO
+
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref CognitoDomain
+      UserPoolId: !Ref UserPool
+
+
+
+  RestAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+      TracingEnabled: true
+      Auth:
+        DefaultAuthorizer: CognitoUserPoolAuthorizer
+        Authorizers:
+          LambdaTokenAuthorizer:
+            FunctionArn: !GetAtt AuthorizerFunction.Arn
+            Identity:
+              Headers:
+              - Authorization
+          CognitoUserPoolAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
+            Identity:
+              Header: Authorization
+
+
+
+
+      Tags:
+        Name: !Sub "${AWS::StackName}-API"
+        Stack: !Sub "${AWS::StackName}"
+
+
+Outputs:
+  WebEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"
+
+
+  getAllTodoFunction:
+    Description: "getAllTodoFunction ARN"
+    Value: !GetAtt getAllTodoFunction.Arn
+
+  getAllTodoFunctionEndpoint:
+    Description: "getAllTodoFunction endpoint"
+    Value: !Sub "https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/todo"
+
+  createTodoFunction:
+    Description: "createTodoFunction ARN"
+    Value: !GetAtt createTodoFunction.Arn
+
+  createTodoFunctionEndpoint:
+    Description: "createTodoFunction endpoint"
+    Value: !Sub "https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/todo"
+
+  updateTodoFunction:
+    Description: "updateTodoFunction ARN"
+    Value: !GetAtt updateTodoFunction.Arn
+
+  updateTodoFunctionEndpoint:
+    Description: "updateTodoFunction endpoint"
+    Value: !Sub "https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/todo/{id}"
+
+  deleteTodoFunction:
+    Description: "deleteTodoFunction ARN"
+    Value: !GetAtt deleteTodoFunction.Arn
+
+  deleteTodoFunctionEndpoint:
+    Description: "deleteTodoFunction endpoint"
+    Value: !Sub "https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/todo/{id}"
+
+
+  TodoTable:
+    Description: "DynamoDB Todo table"
+    Value: !Ref TodoTable
+
+
+  CognitoUserPoolID:
+    Value: !Ref UserPool
+    Description: The UserPool ID
+  CognitoAppClientID:
+    Value: !Ref UserPoolClient
+    Description: The app client
+  HostedUIURL:
+    Value: !Sub https://${CognitoDomain}.auth.${region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=token&scope=email+openid+phone+profile&redirect_uri=http://localhost:3000
+    Description: The hosted UI URL
