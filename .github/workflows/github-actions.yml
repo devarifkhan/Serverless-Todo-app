@@ -1,0 +1,28 @@
+name: GitHub Actions Todo App
+run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+on:
+  push:
+    branches:
+    - main
+jobs:
+  ProductionDeployment:
+    name: production-dev
+    runs-on: ubuntu-latest
+    environment:
+      name: Production
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: aws-actions/setup-sam@v2
+      with:
+        use-installer: true
+    - uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    # Build inside Docker containers
+    - run: sam build --use-container
+    # Prevent prompts and failure when the stack is unchanged
+    - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
