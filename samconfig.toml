@@ -20,7 +20,7 @@ resolve_s3 = true
 stack_name = "arif"
 s3_prefix = "arif"
 region = "us-east-1"
-parameter_overrides = "Stage=\"dev\" CognitoDomain=\"ariftodoapp\""
+parameter_overrides = "Stage=\"dev\" CognitoDomain=\"ariftodoappcicd\""
 image_repositories = []
 
 [default.package.parameters]
