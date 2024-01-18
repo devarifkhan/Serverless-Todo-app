@@ -102,7 +102,7 @@ jobs:
             --resolve-s3 ${TESTING_ARTIFACTS_BUCKET} \
             --no-fail-on-empty-changeset \
             --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
-            --no-confirm-changeset
+          
 
   build-and-package:
     if: github.ref == 'refs/heads/Actions'
@@ -190,7 +190,7 @@ jobs:
             --resolve-s3 ${TESTING_ARTIFACTS_BUCKET} \
             --no-fail-on-empty-changeset \
             --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
-            --no-confirm-changeset
+            
 
   integration-test:
     if: github.ref == 'refs/heads/Actions'
@@ -235,4 +235,4 @@ jobs:
             --resolve-s3 ${PROD_ARTIFACTS_BUCKET} \
             --no-fail-on-empty-changeset \
             --role-arn ${PROD_CLOUDFORMATION_EXECUTION_ROLE}
-            --no-confirm-changeset
+            
