@@ -267,5 +267,5 @@ Outputs:
     Value: !Ref UserPoolClient
     Description: The app client
   HostedUIURL:
-    Value: !Sub https://${CognitoDomain}.auth.${region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=token&scope=email+openid+phone+profile&redirect_uri=http://localhost:3000
+    Value: !Sub https://${CognitoDomain}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=token&scope=email+openid+phone+profile&redirect_uri=http://localhost:3000
     Description: The hosted UI URL
