@@ -189,7 +189,7 @@ jobs:
             --region ${TESTING_REGION} \
             --resolve-s3 ${TESTING_ARTIFACTS_BUCKET} \
             --no-fail-on-empty-changeset \
-            --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE}
+            --role-arn ${TESTING_CLOUDFORMATION_EXECUTION_ROLE} \
             --parameter-overrides "CognitoDomain=samtododev"
             
 
@@ -235,6 +235,6 @@ jobs:
             --region ${PROD_REGION} \
             --resolve-s3 ${PROD_ARTIFACTS_BUCKET} \
             --no-fail-on-empty-changeset \
-            --role-arn ${PROD_CLOUDFORMATION_EXECUTION_ROLE}
+            --role-arn ${PROD_CLOUDFORMATION_EXECUTION_ROLE} \
             --parameter-overrides "CognitoDomain=samtodoprod"
             
